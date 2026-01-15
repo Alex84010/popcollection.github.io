@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ma Collection Funko Pop</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        /* Zone de scan */
+        .camera-zone {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 60px 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #photo-input {
+            display: none;
+        }
+
+        .scan-button {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .scan-button:hover {
+            transform: scale(1.05);
+        }
+
+        .scan-button.scanning {
+            background: #FFA726;
+            pointer-events: none;
+        }
+
+        /* Preview de l'image */
+        .preview-zone {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .preview-zone img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        /* Stats */
+        .stats {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        /* Grille de collection */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .pop-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .pop-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .pop-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            transition: filter 0.5s;
+        }
+
+        /* Silhouette noire */
+        .pop-card.locked img {
+            filter: brightness(0);
+        }
+
+        .pop-card p {
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        /* Boutons de navigation */
+        .nav-button {
+            display: block;
+            width: 100%;
+            max-width: 300px;
+            margin: 20px auto;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Pop-ups */
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .popup.hidden {
+            display: none;
+        }
+
+        .popup-content {
+            background: white;
+            color: #333;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .popup-content img {
+            max-width: 200px;
+            margin: 20px 0;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        .popup-content button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* Animation de déblocage */
+        .celebrate {
+            animation: popIn 0.5s ease-out;
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Messages */
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .message.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .message.success {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .message.info {
+            background: #2196F3;
+            color: white;
+        }
+
+        /* Debug info */
+        .debug-info {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 0.85em;
+            text-align: left;
+        }
+
+        .debug-info pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <!-- Écran de scan -->
+    <div id="scan-screen" class="screen active">
+        <h1>📸 Scanner une Pop</h1>
+        <div class="camera-zone">
+            <input type="file" id="photo-input" accept="image/*" capture="environment">
+            <label for="photo-input" class="scan-button" id="scan-btn">
+                📷 Prendre une photo
+            </label>
+        </div>
+        <div id="preview-zone" class="preview-zone"></div>
+        <div id="scan-message"></div>
+        <button onclick="showCollection()" class="nav-button">
+            Voir ma collection
+        </button>
+    </div>
+
+    <!-- Écran de collection -->
+    <div id="collection-screen" class="screen">
+        <h1>🎴 Ma Collection</h1>
+        <div class="stats">
+            <span id="stats-text">0/0 débloquées</span>
+        </div>
+        
+        <div id="grid" class="grid">
+            <!-- Les cartes vont apparaître ici -->
+        </div>
+        
+        <button onclick="showScan()" class="nav-button">
+            Retour au scan
+        </button>
+    </div>
+
+    <!-- Pop-up détail -->
+    <div id="detail-popup" class="popup hidden">
+        <div class="popup-content">
+            <button onclick="closeDetail()" class="close-btn">✖</button>
+            <img id="detail-image" src="" alt="">
+            <h2 id="detail-name">???</h2>
+            <p id="detail-number">#???</p>
+        </div>
+    </div>
+
+    <!-- Pop-up déblocage -->
+    <div id="unlock-popup" class="popup hidden">
+        <div class="popup-content celebrate">
+            <h2>🎉 NOUVELLE POP !</h2>
+            <img id="unlock-image" src="" alt="">
+            <h3 id="unlock-name"></h3>
+            <p id="unlock-number"></p>
+            <button onclick="closeUnlock()">Super !</button>
+        </div>
+    </div>
+
+    <script>
+        // ========== DONNÉES ==========
+        
+        // Liste de toutes les Pops Demon Slayer
+        const allPops = [
+            { number: 615, name: "Tanjiro Kamado" },
+            { number: 616, name: "Nezuko Kamado" },
+            { number: 867, name: "Inosuke Hashibira" },
+            { number: 868, name: "Zenitsu Agatsuma" },
+            { number: 869, name: "Giyu Tomioka" },
+            { number: 870, name: "Shinobu Kocho" },
+            { number: 871, name: "Kyojuro Rengoku" },
+            { number: 1559, name: "Muzan Kibutsuji" },
+            // Ajoute toutes tes Pops ici
+        ];
+
+        // Pops débloquées (sauvegardées dans le navigateur)
+        let unlockedPops = JSON.parse(localStorage.getItem('unlockedPops')) || [];
+
+        // ========== FONCTIONS PRINCIPALES ==========
+
+        // Changer d'écran
+        function showScan() {
+            document.getElementById('scan-screen').classList.add('active');
+            document.getElementById('collection-screen').classList.remove('active');
+            document.getElementById('preview-zone').innerHTML = '';
+            document.getElementById('scan-message').innerHTML = '';
+        }
+
+        function showCollection() {
+            document.getElementById('scan-screen').classList.remove('active');
+            document.getElementById('collection-screen').classList.add('active');
+            displayCollection();
+        }
+
+        // Afficher la collection
+        function displayCollection() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            // Trier par numéro
+            const sorted = [...allPops].sort((a, b) => a.number - b.number);
+
+            sorted.forEach(pop => {
+                const isUnlocked = unlockedPops.includes(pop.number);
+                
+                const card = document.createElement('div');
+                card.className = isUnlocked ? 'pop-card' : 'pop-card locked';
+                card.onclick = () => showDetail(pop, isUnlocked);
+                
+                card.innerHTML = `
+                    <img src="${pop.number}.png" alt="Pop ${pop.number}">
+                    <p>${isUnlocked ? pop.name : '???'}</p>
+                    <p>#${pop.number}</p>
+                `;
+                
+                grid.appendChild(card);
+            });
+
+            // Mettre à jour les stats
+            updateStats();
+        }
+
+        // Mettre à jour les stats
+        function updateStats() {
+            const total = allPops.length;
+            const unlocked = unlockedPops.length;
+            const percent = Math.round((unlocked / total) * 100);
+            
+            document.getElementById('stats-text').textContent = 
+                `${unlocked}/${total} débloquées (${percent}%)`;
+        }
+
+        // Afficher le détail d'une Pop
+        function showDetail(pop, isUnlocked) {
+            const popup = document.getElementById('detail-popup');
+            const img = document.getElementById('detail-image');
+            const name = document.getElementById('detail-name');
+            const number = document.getElementById('detail-number');
+
+            img.src = `${pop.number}.png`;
+            
+            if (isUnlocked) {
+                img.style.filter = 'none';
+                name.textContent = pop.name;
+            } else {
+                img.style.filter = 'brightness(0)';
+                name.textContent = '???';
+            }
+            
+            number.textContent = `#${pop.number}`;
+            popup.classList.remove('hidden');
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-popup').classList.add('hidden');
+        }
+
+        // ========== SCAN OCR ==========
+
+        document.getElementById('photo-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const scanBtn = document.getElementById('scan-btn');
+            const messageDiv = document.getElementById('scan-message');
+            const previewZone = document.getElementById('preview-zone');
+
+            // Afficher la preview de l'image
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                previewZone.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+
+            // Changer le bouton en mode "scanning"
+            scanBtn.classList.add('scanning');
+            scanBtn.textContent = '⏳ Analyse en cours...';
+            messageDiv.innerHTML = '<p class="message info">🔍 Recherche du nom et du numéro...</p>';
+
+            try {
+                // Lancer l'OCR avec Tesseract
+                const result = await Tesseract.recognize(file, 'eng', {
+                    logger: (m) => {
+                        if (m.status === 'recognizing text') {
+                            const percent = Math.round(m.progress * 100);
+                            messageDiv.innerHTML = `<p class="message info">🔍 Analyse : ${percent}%</p>`;
+                        }
+                    }
+                });
+
+                const detectedText = result.data.text;
+                console.log('Texte détecté:', detectedText);
+
+                // Afficher le texte détecté (pour debug)
+                const debugInfo = `
+                    <div class="debug-info">
+                        <strong>Texte détecté :</strong>
+                        <pre>${detectedText}</pre>
+                    </div>
+                `;
+
+                // Analyser le texte
+                const scanResult = analyzeText(detectedText);
+                
+                if (scanResult.success) {
+                    messageDiv.innerHTML = debugInfo + 
+                        `<p class="message success">✅ Détecté : ${scanResult.pop.name} #${scanResult.pop.number}</p>`;
+                    handleScan(scanResult.pop);
+                } else {
+                    messageDiv.innerHTML = debugInfo + 
+                        `<p class="message error">${scanResult.error}</p>`;
+                }
+
+            } catch (error) {
+                console.error('Erreur OCR:', error);
+                messageDiv.innerHTML = `<p class="message error">❌ Erreur lors du scan. Réessaye !</p>`;
+            }
+
+            // Restaurer le bouton
+            scanBtn.classList.remove('scanning');
+            scanBtn.textContent = '📷 Prendre une photo';
+
+            // Réinitialiser l'input
+            e.target.value = '';
+        });
+
+        // ========== ANALYSE DU TEXTE OCR ==========
+
+        function analyzeText(text) {
+            // Nettoyer le texte
+            text = text.toUpperCase().replace(/[^\w\s#]/g, ' ');
+            
+            console.log('Texte nettoyé:', text);
+
+            // Chercher un numéro (3-4 chiffres)
+            const numberMatches = text.match(/\b(\d{3,4})\b/g);
+            
+            if (!numberMatches) {
+                return {
+                    success: false,
+                    error: "❌ Aucun numéro détecté sur la boîte"
+                };
+            }
+
+            console.log('Numéros trouvés:', numberMatches);
+
+            // Pour chaque numéro trouvé, chercher la Pop correspondante
+            for (let numberStr of numberMatches) {
+                const number = parseInt(numberStr);
+                const pop = allPops.find(p => p.number === number);
+                
+                if (!pop) continue; // Ce numéro n'existe pas dans notre liste
+                
+                // Vérifier si le nom du personnage est présent dans le texte
+                const nameVariations = getNameVariations(pop.name);
+                const nameFound = nameVariations.some(variation => 
+                    text.includes(variation.toUpperCase())
+                );
+
+                console.log(`Pop #${number}: Nom cherché = ${pop.name}, Trouvé = ${nameFound}`);
+
+                if (nameFound) {
+                    // SUCCESS : Nom ET numéro correspondent !
+                    return {
+                        success: true,
+                        pop: pop
+                    };
+                }
+            }
+
+            // Si on arrive ici, on a trouvé des numéros mais pas les noms correspondants
+            return {
+                success: false,
+                error: "❌ Le nom et le numéro ne correspondent pas"
+            };
+        }
+
+        // Générer des variations du nom pour une meilleure détection
+        function getNameVariations(name) {
+            const variations = [name];
+            
+            // Retirer le nom de famille
+            const firstName = name.split(' ')[0];
+            variations.push(firstName);
+            
+            // Version sans espaces
+            variations.push(name.replace(/\s/g, ''));
+            
+            // Versions sans accents (si besoin)
+            variations.push(name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+            
+            return variations;
+        }
+
+        // ========== GESTION DU SCAN ==========
+
+        function handleScan(pop) {
+            // Vérifier si déjà débloquée
+            if (unlockedPops.includes(pop.number)) {
+                const messageDiv = document.getElementById('scan-message');
+                messageDiv.innerHTML += `<p class="message error">⚠️ Pop #${pop.number} déjà dans ta collection !</p>`;
+                return;
+            }
+
+            // DÉBLOCAGE !
+            unlockedPops.push(pop.number);
+            saveProgress();
+            
+            // Animation après 1 seconde
+            setTimeout(() => {
+                showUnlock(pop);
+            }, 1000);
+        }
+
+        // Afficher l'animation de déblocage
+        function showUnlock(pop) {
+            const popup = document.getElementById('unlock-popup');
+            document.getElementById('unlock-image').src = `${pop.number}.png`;
+            document.getElementById('unlock-name').textContent = pop.name;
+            document.getElementById('unlock-number').textContent = `#${pop.number}`;
+            
+            popup.classList.remove('hidden');
+        }
+
+        function closeUnlock() {
+            document.getElementById('unlock-popup').classList.add('hidden');
+            showCollection(); // Aller à la collection
+        }
+
+        // ========== SAUVEGARDE ==========
+
+        function saveProgress() {
+            localStorage.setItem('unlockedPops', JSON.stringify(unlockedPops));
+        }
+
+        // ========== INITIALISATION ==========
+
+        // Afficher la collection au démarrage
+        displayCollection();
+    </script>
+</body>
+  </html>
