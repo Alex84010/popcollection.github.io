@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Funko Pop Collection - Demon Slayer</title>
+    <meta name="viewport" width=device-width, initial-scale=1.0">
+    <title>Funko Pop Scanner - OCR Réel</title>
     <style>
         * {
             margin: 0;
@@ -15,13 +15,13 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
             color: white;
         }
 
         .container {
             max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
         }
 
         /* Header */
@@ -51,53 +51,168 @@
             color: #ffd700;
         }
 
-        /* Scanner */
+        /* Scanner Section */
         .scanner-section {
             background: rgba(255,255,255,0.1);
-            padding: 20px;
+            padding: 25px;
             border-radius: 15px;
             margin-bottom: 30px;
             backdrop-filter: blur(10px);
-            text-align: center;
         }
 
-        .scanner-input {
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 640px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #video {
+            width: 100%;
+            display: block;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .scan-zone {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 60%;
+            border: 3px dashed #ffd700;
+            border-radius: 10px;
+            background: rgba(255, 215, 0, 0.1);
+        }
+
+        .scan-zone::before {
+            content: "📦 Place la boîte ici";
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            padding: 8px 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        .scanner-controls {
+            text-align: center;
+            margin-top: 20px;
             display: flex;
             gap: 10px;
             justify-content: center;
-            margin-top: 15px;
             flex-wrap: wrap;
         }
 
-        input[type="number"] {
-            padding: 15px;
-            font-size: 1.2em;
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
             border: none;
             border-radius: 10px;
-            width: 200px;
-            text-align: center;
-        }
-
-        .btn-scan {
-            padding: 15px 40px;
-            font-size: 1.2em;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
             cursor: pointer;
             font-weight: bold;
-            transition: transform 0.2s;
+            transition: all 0.3s;
         }
 
-        .btn-scan:hover {
+        .btn-primary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .btn:hover {
             transform: scale(1.05);
         }
 
-        .btn-scan:active {
-            transform: scale(0.95);
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
+        /* OCR Results */
+        .ocr-results {
+            background: rgba(0,0,0,0.3);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .ocr-results h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        .ocr-text {
+            font-family: monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .detected-info {
+            background: rgba(76, 175, 80, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            border-left: 4px solid #4caf50;
+        }
+
+        .detected-info strong {
+            color: #4caf50;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Messages */
         .message {
             margin-top: 15px;
             padding: 15px;
@@ -106,19 +221,23 @@
             display: none;
         }
 
+        .message.active {
+            display: block;
+        }
+
         .message.success {
             background: rgba(76, 175, 80, 0.8);
-            display: block;
+            border-left: 5px solid #4caf50;
         }
 
         .message.error {
             background: rgba(244, 67, 54, 0.8);
-            display: block;
+            border-left: 5px solid #f44336;
         }
 
-        .message.duplicate {
+        .message.warning {
             background: rgba(255, 152, 0, 0.8);
-            display: block;
+            border-left: 5px solid #ff9800;
         }
 
         /* Collection Grid */
@@ -220,7 +339,7 @@
         .rarity-rare { border: 3px solid #2196f3; box-shadow: 0 0 20px rgba(33, 150, 243, 0.5); }
         .rarity-legendary { border: 3px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.7); }
 
-        /* Animation de déblocage */
+        /* Animation déblocage */
         @keyframes unlock {
             0% { transform: scale(1); }
             50% { transform: scale(1.2); }
@@ -236,74 +355,20 @@
             animation: unlock 0.6s ease, flash 0.3s ease;
         }
 
-        /* Modal détail */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 30px;
-            border-radius: 20px;
-            max-width: 500px;
-            width: 100%;
-            text-align: center;
-            position: relative;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            font-size: 2em;
-            cursor: pointer;
-            color: white;
-        }
-
-        .modal-image {
-            width: 100%;
-            max-width: 300px;
-            margin: 20px auto;
-            border-radius: 15px;
-        }
-
-        .modal-image img {
-            width: 100%;
-            border-radius: 15px;
-        }
-
-        .modal-image.locked img {
-            filter: brightness(0) opacity(0.8);
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
             h1 { font-size: 1.8em; }
-            .collection { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
-            .scanner-input { flex-direction: column; align-items: center; }
-            input[type="number"], .btn-scan { width: 100%; max-width: 300px; }
+            .collection { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+            .scanner-controls { flex-direction: column; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🎯 Collection Funko Pop</h1>
-            <p>Demon Slayer</p>
+            <h1>📸 Funko Pop Scanner</h1>
+            <p>Demon Slayer - OCR Réel</p>
             <div class="stats">
                 <span id="progress">0 / 0</span> débloquées
                 (<span id="percentage">0%</span>)
@@ -312,65 +377,297 @@
 
         <!-- Scanner -->
         <div class="scanner-section">
-            <h2>📸 Scanner une Funko Pop</h2>
-            <p style="opacity: 0.8; margin-top: 10px;">Entre le numéro inscrit sur la boîte</p>
-            <div class="scanner-input">
-                <input type="number" id="scanInput" placeholder="Ex: 1532" min="1">
-                <button class="btn-scan" onclick="scanPop()">Scanner</button>
+            <h2 style="text-align: center; margin-bottom: 15px;">🎯 Scanner une boîte</h2>
+            
+            <div class="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas"></canvas>
+                <div class="camera-overlay">
+                    <div class="scan-zone"></div>
+                </div>
             </div>
-            <div class="message" id="scanMessage"></div>
+
+            <div class="scanner-controls">
+                <button class="btn btn-primary" id="startCamera">📷 Démarrer la caméra</button>
+                <button class="btn btn-primary" id="captureBtn" disabled>📸 Capturer & Analyser</button>
+                <button class="btn btn-secondary" id="stopCamera" disabled>⏹️ Arrêter</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>🔍 Analyse OCR en cours...</p>
+            </div>
+
+            <div class="message" id="message"></div>
+
+            <div class="ocr-results" id="ocrResults" style="display: none;">
+                <h3>📝 Texte détecté :</h3>
+                <div class="ocr-text" id="ocrText"></div>
+                <div class="detected-info" id="detectedInfo"></div>
+            </div>
         </div>
 
         <!-- Collection -->
+        <h2 style="text-align: center; margin-bottom: 20px;">🎴 Ma Collection</h2>
         <div class="collection" id="collection"></div>
     </div>
 
-    <!-- Modal détail -->
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeModal()">&times;</span>
-            <h2 id="modalTitle"></h2>
-            <div class="modal-image" id="modalImageContainer">
-                <img id="modalImage" src="" alt="">
-            </div>
-            <p id="modalNumber"></p>
-            <p id="modalSeries"></p>
-            <p id="modalRarity"></p>
-            <p id="modalStatus"></p>
-        </div>
-    </div>
+    <!-- Tesseract.js OCR Library -->
+    <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
 
     <script>
         // ========================================
         // 📊 BASE DE DONNÉES
         // ========================================
         const POPS_DATABASE = [
-            { number: 1532, name: "Tanjiro Kamado", series: "Demon Slayer", rarity: "common" },
-            { number: 1533, name: "Nezuko Kamado", series: "Demon Slayer", rarity: "rare" },
-            { number: 1534, name: "Zenitsu Agatsuma", series: "Demon Slayer", rarity: "common" },
-            { number: 1535, name: "Inosuke Hashibira", series: "Demon Slayer", rarity: "rare" },
-            { number: 1536, name: "Giyu Tomioka", series: "Demon Slayer", rarity: "legendary" },
-            { number: 1537, name: "Shinobu Kocho", series: "Demon Slayer", rarity: "rare" },
-            { number: 1538, name: "Kyojuro Rengoku", series: "Demon Slayer", rarity: "legendary" },
-            { number: 1539, name: "Tengen Uzui", series: "Demon Slayer", rarity: "rare" },
+            { number: 1532, name: "TANJIRO KAMADO", series: "Demon Slayer", rarity: "common" },
+            { number: 1533, name: "NEZUKO KAMADO", series: "Demon Slayer", rarity: "rare" },
+            { number: 1534, name: "ZENITSU AGATSUMA", series: "Demon Slayer", rarity: "common" },
+            { number: 1535, name: "INOSUKE HASHIBIRA", series: "Demon Slayer", rarity: "rare" },
+            { number: 1536, name: "GIYU TOMIOKA", series: "Demon Slayer", rarity: "legendary" },
+            { number: 1537, name: "SHINOBU KOCHO", series: "Demon Slayer", rarity: "rare" },
+            { number: 1538, name: "KYOJURO RENGOKU", series: "Demon Slayer", rarity: "legendary" },
+            { number: 1539, name: "TENGEN UZUI", series: "Demon Slayer", rarity: "rare" },
         ];
 
+        // Variations de noms acceptées (pour OCR imprécis)
+        const NAME_VARIATIONS = {
+            "TANJIRO": ["TANJIRO", "TANJIROU", "TANJIR0"],
+            "NEZUKO": ["NEZUKO", "NEZUK0"],
+            "ZENITSU": ["ZENITSU", "ZENITZU", "ZENITS"],
+            "INOSUKE": ["INOSUKE", "INOSKE", "IN0SUKE"],
+            "GIYU": ["GIYU", "GIYUU", "GIYO"],
+            "SHINOBU": ["SHINOBU", "SHIN0BU"],
+            "KYOJURO": ["KYOJURO", "KYOUJURO", "KYOJUR0"],
+            "TENGEN": ["TENGEN", "TENG3N"]
+        };
+
         // ========================================
-        // 💾 GESTION DE LA PROGRESSION
+        // 💾 PROGRESSION
         // ========================================
-        function loadProgress() {
-            const saved = localStorage.getItem('unlockedPops');
-            return saved ? JSON.parse(saved) : [];
+        let unlockedPops = JSON.parse(localStorage.getItem('unlockedPops') || '[]');
+
+        // ========================================
+        // 📷 GESTION CAMÉRA
+        // ========================================
+        let stream = null;
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        document.getElementById('startCamera').onclick = async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment', // Caméra arrière
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                video.srcObject = stream;
+                
+                document.getElementById('startCamera').disabled = true;
+                document.getElementById('captureBtn').disabled = false;
+                document.getElementById('stopCamera').disabled = false;
+                
+                showMessage('success', '✅ Caméra activée ! Place la boîte dans la zone jaune');
+            } catch (err) {
+                showMessage('error', '❌ Impossible d\'accéder à la caméra : ' + err.message);
+            }
+        };
+
+        document.getElementById('stopCamera').onclick = () => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                
+                document.getElementById('startCamera').disabled = false;
+                document.getElementById('captureBtn').disabled = true;
+                document.getElementById('stopCamera').disabled = true;
+                
+                showMessage('warning', '⏹️ Caméra arrêtée');
+            }
+        };
+
+        // ========================================
+        // 🔍 CAPTURE & OCR
+        // ========================================
+        document.getElementById('captureBtn').onclick = async () => {
+            // Capture de l'image
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+            
+            const imageData = canvas.toDataURL('image/png');
+            
+            // Désactiver le bouton pendant l'analyse
+            document.getElementById('captureBtn').disabled = true;
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('ocrResults').style.display = 'none';
+            
+            try {
+                // OCR avec Tesseract
+                const result = await Tesseract.recognize(imageData, 'eng', {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            console.log(`OCR: ${Math.round(m.progress * 100)}%`);
+                        }
+                    }
+                });
+                
+                const detectedText = result.data.text;
+                console.log('📝 Texte détecté:', detectedText);
+                
+                // Afficher le texte OCR
+                document.getElementById('ocrText').textContent = detectedText || '(Aucun texte détecté)';
+                document.getElementById('ocrResults').style.display = 'block';
+                
+                // Analyse du texte
+                const validPop = analyzeScan(detectedText);
+                
+                if (validPop) {
+                    attemptUnlock(validPop);
+                } else {
+                    showMessage('error', '❌ Aucune Funko Demon Slayer valide détectée');
+                    document.getElementById('detectedInfo').innerHTML = '<strong>⚠️ Vérifications échouées</strong><br>Le numéro ET le nom doivent être présents sur la boîte.';
+                }
+                
+            } catch (err) {
+                console.error('Erreur OCR:', err);
+                showMessage('error', '❌ Erreur lors de l\'analyse : ' + err.message);
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+                document.getElementById('captureBtn').disabled = false;
+            }
+        };
+
+        // ========================================
+        // 🧠 ANALYSE DU SCAN
+        // ========================================
+        function analyzeScan(text) {
+            const upperText = text.toUpperCase();
+            
+            // Nettoyer le texte (garder lettres, chiffres, espaces)
+            const cleanText = upperText.replace(/[^A-Z0-9\s]/g, ' ');
+            
+            console.log('🔍 Analyse:', cleanText);
+            
+            // Chercher un numéro valide
+            const numbers = cleanText.match(/\b\d{3,4}\b/g) || [];
+            console.log('🔢 Numéros trouvés:', numbers);
+            
+            for (let numStr of numbers) {
+                const number = parseInt(numStr);
+                const pop = POPS_DATABASE.find(p => p.number === number);
+                
+                if (pop) {
+                    console.log(`✅ Numéro #${number} trouvé dans la DB`);
+                    
+                    // Vérifier que le nom du personnage est présent
+                    const nameFound = checkNameInText(pop.name, cleanText);
+                    
+                    if (nameFound) {
+                        console.log(`✅ Nom "${pop.name}" validé !`);
+                        
+                        document.getElementById('detectedInfo').innerHTML = `
+                            <strong>✅ Funko détectée :</strong><br>
+                            📦 Numéro : #${pop.number}<br>
+                            👤 Nom : ${pop.name}<br>
+                            🎯 Validation : NUMÉRO + NOM confirmés
+                        `;
+                        
+                        return pop;
+                    } else {
+                        console.log(`❌ Nom "${pop.name}" non trouvé dans le texte`);
+                        document.getElementById('detectedInfo').innerHTML = `
+                            <strong style="color: #ff9800;">⚠️ Validation partielle :</strong><br>
+                            📦 Numéro #${number} détecté<br>
+                            ❌ Nom "${pop.name}" non trouvé<br>
+                            💡 Assure-toi que le nom est visible
+                        `;
+                    }
+                }
+            }
+            
+            return null;
         }
 
-        function saveProgress(unlockedPops) {
+        // ========================================
+        // ✅ VÉRIFICATION DU NOM
+        // ========================================
+        function checkNameInText(popName, text) {
+            // Diviser le nom en mots (ex: "TANJIRO KAMADO" -> ["TANJIRO", "KAMADO"])
+            const nameWords = popName.split(' ');
+            
+            for (let word of nameWords) {
+                // Chercher le mot ou ses variations
+                const variations = NAME_VARIATIONS[word] || [word];
+                
+                let wordFound = false;
+                for (let variant of variations) {
+                    if (text.includes(variant)) {
+                        console.log(`  ✓ "${variant}" trouvé`);
+                        wordFound = true;
+                        break;
+                    }
+                }
+                
+                // Si au moins un mot clé du nom est trouvé, OK
+                if (wordFound) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        // ========================================
+        // 🔓 DÉBLOCAGE
+        // ========================================
+        function attemptUnlock(pop) {
+            if (unlockedPops.includes(pop.number)) {
+                showMessage('warning', `🔁 ${pop.name} est déjà dans ta collection !`);
+                return;
+            }
+            
+            // DÉBLOCAGE
+            unlockedPops.push(pop.number);
             localStorage.setItem('unlockedPops', JSON.stringify(unlockedPops));
+            
+            // Animation
+            const cards = document.querySelectorAll('.pop-card');
+            const index = POPS_DATABASE.findIndex(p => p.number === pop.number);
+            const card = cards[index];
+            
+            card.classList.add('unlocking');
+            setTimeout(() => {
+                card.classList.remove('locked', 'unlocking');
+                updateStats();
+            }, 600);
+            
+            const rarityEmoji = {
+                'common': '⚪',
+                'rare': '🔵',
+                'legendary': '🟡'
+            };
+            showMessage('success', `${rarityEmoji[pop.rarity]} ${pop.name} #${pop.number} débloqué(e) !`);
         }
 
-        let unlockedPops = loadProgress();
+        // ========================================
+        // 💬 MESSAGES
+        // ========================================
+        function showMessage(type, text) {
+            const message = document.getElementById('message');
+            message.className = `message active ${type}`;
+            message.textContent = text;
+            
+            setTimeout(() => {
+                message.classList.remove('active');
+            }, 5000);
+        }
 
         // ========================================
-        // 🎨 RENDU DE LA COLLECTION
+        // 🎨 RENDU COLLECTION
         // ========================================
         function renderCollection() {
             const container = document.getElementById('collection');
@@ -381,12 +678,11 @@
                 
                 const card = document.createElement('div');
                 card.className = `pop-card ${isUnlocked ? '' : 'locked'}`;
-                card.onclick = () => showDetail(pop.number);
 
                 card.innerHTML = `
                     <div class="pop-image-container">
                         <img class="pop-image" src="${pop.number}.png" alt="${pop.name}" 
-                             onerror="this.src='https://via.placeholder.com/150?text=No+Image'">
+                             onerror="this.src='https://via.placeholder.com/150?text=${pop.number}'">
                         <div class="lock-icon">🔒</div>
                     </div>
                     <div class="pop-number">#${pop.number}</div>
@@ -400,9 +696,6 @@
             updateStats();
         }
 
-        // ========================================
-        // 📊 MISE À JOUR DES STATS
-        // ========================================
         function updateStats() {
             const total = POPS_DATABASE.length;
             const unlocked = unlockedPops.length;
@@ -413,134 +706,12 @@
         }
 
         // ========================================
-        // 📸 SCAN D'UNE POP
-        // ========================================
-        function scanPop() {
-            const input = document.getElementById('scanInput');
-            const number = parseInt(input.value);
-            const message = document.getElementById('scanMessage');
-
-            // Reset message
-            message.className = 'message';
-            message.textContent = '';
-
-            // Validation
-            if (!number) {
-                showMessage('error', '⚠️ Entre un numéro valide !');
-                return;
-            }
-
-            const pop = POPS_DATABASE.find(p => p.number === number);
-
-            if (!pop) {
-                showMessage('error', `❌ Funko #${number} non trouvée dans Demon Slayer`);
-                return;
-            }
-
-            // Vérification déblocage
-            if (unlockedPops.includes(number)) {
-                showMessage('duplicate', `🔁 ${pop.name} est déjà dans ta collection !`);
-                return;
-            }
-
-            // DÉBLOCAGE !
-            unlockPop(number);
-            input.value = '';
-        }
-
-        function unlockPop(number) {
-            const pop = POPS_DATABASE.find(p => p.number === number);
-            
-            // Ajout à la progression
-            unlockedPops.push(number);
-            saveProgress(unlockedPops);
-
-            // Animation
-            const cards = document.querySelectorAll('.pop-card');
-            const index = POPS_DATABASE.findIndex(p => p.number === number);
-            const card = cards[index];
-
-            card.classList.add('unlocking');
-            setTimeout(() => {
-                card.classList.remove('locked', 'unlocking');
-                updateStats();
-            }, 600);
-
-            // Message
-            const rarityEmoji = {
-                'common': '⚪',
-                'rare': '🔵',
-                'legendary': '🟡'
-            };
-            showMessage('success', `${rarityEmoji[pop.rarity]} ${pop.name} débloqué(e) !`);
-        }
-
-        function showMessage(type, text) {
-            const message = document.getElementById('scanMessage');
-            message.className = `message ${type}`;
-            message.textContent = text;
-
-            setTimeout(() => {
-                message.className = 'message';
-            }, 3000);
-        }
-
-        // ========================================
-        // 🔍 MODAL DÉTAIL
-        // ========================================
-        function showDetail(number) {
-            const pop = POPS_DATABASE.find(p => p.number === number);
-            const isUnlocked = unlockedPops.includes(number);
-            const modal = document.getElementById('modal');
-
-            document.getElementById('modalTitle').textContent = isUnlocked ? pop.name : '???';
-            document.getElementById('modalNumber').textContent = `#${pop.number}`;
-            document.getElementById('modalSeries').textContent = pop.series;
-            
-            const rarityText = {
-                'common': 'Commune ⚪',
-                'rare': 'Rare 🔵',
-                'legendary': 'Légendaire 🟡'
-            };
-            document.getElementById('modalRarity').textContent = isUnlocked ? rarityText[pop.rarity] : '???';
-            document.getElementById('modalStatus').textContent = isUnlocked ? '✅ Débloquée' : '🔒 Verrouillée';
-
-            const imgContainer = document.getElementById('modalImageContainer');
-            const img = document.getElementById('modalImage');
-            img.src = `${pop.number}.png`;
-            imgContainer.className = isUnlocked ? 'modal-image' : 'modal-image locked';
-
-            modal.classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('modal').classList.remove('active');
-        }
-
-        // Fermer avec Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
-        });
-
-        // Fermer en cliquant à l'extérieur
-        document.getElementById('modal').addEventListener('click', (e) => {
-            if (e.target.id === 'modal') closeModal();
-        });
-
-        // ========================================
-        // 🚀 SCAN AVEC ENTRÉE
-        // ========================================
-        document.getElementById('scanInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') scanPop();
-        });
-
-        // ========================================
-        // 🎬 INITIALISATION
+        // 🚀 INIT
         // ========================================
         renderCollection();
-
-        // Bouton reset (pour tester)
-        console.log('🎮 Pour réinitialiser : localStorage.clear() puis F5');
+        
+        console.log('🎮 Scanner Funko Pop chargé !');
+        console.log('📝 Pour reset: localStorage.clear() + F5');
     </script>
 </body>
-                  </html>
+</html>
