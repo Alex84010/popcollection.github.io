@@ -36,7 +36,6 @@
             font-size: 2em;
         }
 
-        /* Zone de scan */
         .camera-zone {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
@@ -69,7 +68,6 @@
             pointer-events: none;
         }
 
-        /* Preview de l'image */
         .preview-zone {
             margin: 20px 0;
             text-align: center;
@@ -82,7 +80,6 @@
             margin-bottom: 15px;
         }
 
-        /* Stats */
         .stats {
             text-align: center;
             font-size: 1.2em;
@@ -92,7 +89,6 @@
             border-radius: 10px;
         }
 
-        /* Grille de collection */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -120,7 +116,6 @@
             transition: filter 0.5s;
         }
 
-        /* Silhouette noire */
         .pop-card.locked img {
             filter: brightness(0);
         }
@@ -130,7 +125,6 @@
             font-size: 0.9em;
         }
 
-        /* Boutons de navigation */
         .nav-button {
             display: block;
             width: 100%;
@@ -149,7 +143,6 @@
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* Pop-ups */
         .popup {
             position: fixed;
             top: 0;
@@ -209,24 +202,16 @@
             margin-top: 20px;
         }
 
-        /* Animation de déblocage */
         .celebrate {
             animation: popIn 0.5s ease-out;
         }
 
         @keyframes popIn {
-            0% {
-                transform: scale(0);
-            }
-            50% {
-                transform: scale(1.1);
-            }
-            100% {
-                transform: scale(1);
-            }
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
 
-        /* Messages */
         .message {
             padding: 15px;
             border-radius: 10px;
@@ -249,7 +234,6 @@
             color: white;
         }
 
-        /* Debug info */
         .debug-info {
             background: rgba(0, 0, 0, 0.5);
             padding: 10px;
@@ -267,10 +251,36 @@
         }
 
         .detected-info {
-            background: rgba(33, 150, 243, 0.3);
-            padding: 10px;
+            background: rgba(76, 175, 80, 0.3);
+            padding: 15px;
             border-radius: 5px;
             margin: 10px 0;
+            font-size: 1.1em;
+        }
+
+        .processed-images {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .processed-images canvas {
+            max-width: 150px;
+            border-radius: 5px;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .tip-box {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .tip-box strong {
+            color: #FFC107;
         }
     </style>
 </head>
@@ -278,6 +288,15 @@
     <!-- Écran de scan -->
     <div id="scan-screen" class="screen active">
         <h1>📸 Scanner une Pop</h1>
+        
+        <div class="tip-box">
+            <strong>💡 Conseils pour un bon scan :</strong><br>
+            • Prends la photo avec beaucoup de lumière<br>
+            • Cadre bien le nom et le numéro<br>
+            • Tiens la boîte bien droite<br>
+            • Évite les reflets
+        </div>
+
         <div class="camera-zone">
             <input type="file" id="photo-input" accept="image/*" capture="environment">
             <label for="photo-input" class="scan-button" id="scan-btn">
@@ -285,6 +304,7 @@
             </label>
         </div>
         <div id="preview-zone" class="preview-zone"></div>
+        <div id="processed-zone" class="processed-images"></div>
         <div id="scan-message"></div>
         <button onclick="showCollection()" class="nav-button">
             Voir ma collection
@@ -298,9 +318,7 @@
             <span id="stats-text">0/0 débloquées</span>
         </div>
         
-        <div id="grid" class="grid">
-            <!-- Les cartes vont apparaître ici -->
-        </div>
+        <div id="grid" class="grid"></div>
         
         <button onclick="showScan()" class="nav-button">
             Retour au scan
@@ -331,9 +349,7 @@
     <script>
         // ========== DONNÉES ==========
         
-        // Liste de toutes les Pops (AJOUTE TOUTES TES POPS ICI)
         const allPops = [
-            // Demon Slayer
             { number: 867, name: "Inosuke Hashibira", series: "Demon Slayer" },
             { number: 1532, name: "Inosuke Hashibira", series: "Demon Slayer" },
             { number: 615, name: "Tanjiro Kamado", series: "Demon Slayer" },
@@ -343,22 +359,19 @@
             { number: 870, name: "Shinobu Kocho", series: "Demon Slayer" },
             { number: 871, name: "Kyojuro Rengoku", series: "Demon Slayer" },
             { number: 1559, name: "Muzan Kibutsuji", series: "Demon Slayer" },
-            
-            // Dragon Ball Z
             { number: 952, name: "Kami", series: "Dragon Ball Z" },
-            
-            // AJOUTE TES AUTRES POPS ICI
+            // AJOUTE TES POPS ICI
         ];
 
-        // Pops débloquées (sauvegardées dans le navigateur)
         let unlockedPops = JSON.parse(localStorage.getItem('unlockedPops')) || [];
 
-        // ========== FONCTIONS PRINCIPALES ==========
+        // ========== NAVIGATION ==========
 
         function showScan() {
             document.getElementById('scan-screen').classList.add('active');
             document.getElementById('collection-screen').classList.remove('active');
             document.getElementById('preview-zone').innerHTML = '';
+            document.getElementById('processed-zone').innerHTML = '';
             document.getElementById('scan-message').innerHTML = '';
         }
 
@@ -426,6 +439,94 @@
             document.getElementById('detail-popup').classList.add('hidden');
         }
 
+        // ========== PRÉTRAITEMENT D'IMAGE ==========
+
+        function preprocessImage(imageFile) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                const reader = new FileReader();
+
+                reader.onload = (e) => {
+                    img.onload = () => {
+                        // Créer 3 versions traitées de l'image
+                        const processed = [
+                            enhanceContrast(img),
+                            sharpenImage(img),
+                            grayscaleThreshold(img)
+                        ];
+                        resolve(processed);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(imageFile);
+            });
+        }
+
+        // Augmenter le contraste
+        function enhanceContrast(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            const factor = 1.5; // Facteur de contraste
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, ((data[i] - 128) * factor) + 128);     // R
+                data[i + 1] = Math.min(255, ((data[i + 1] - 128) * factor) + 128); // G
+                data[i + 2] = Math.min(255, ((data[i + 2] - 128) * factor) + 128); // B
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            return canvas;
+        }
+
+        // Accentuer les contours
+        function sharpenImage(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // Augmenter la luminosité
+            for (let i = 0; i < data.length; i += 4) {
+                data[i] = Math.min(255, data[i] * 1.2);
+                data[i + 1] = Math.min(255, data[i + 1] * 1.2);
+                data[i + 2] = Math.min(255, data[i + 2] * 1.2);
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            return canvas;
+        }
+
+        // Noir et blanc avec seuil
+        function grayscaleThreshold(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+                const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
+                const threshold = gray > 150 ? 255 : 0; // Seuil pour noir/blanc
+                data[i] = data[i + 1] = data[i + 2] = threshold;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            return canvas;
+        }
+
         // ========== SCAN OCR AMÉLIORÉ ==========
 
         document.getElementById('photo-input').addEventListener('change', async (e) => {
@@ -435,48 +536,59 @@
             const scanBtn = document.getElementById('scan-btn');
             const messageDiv = document.getElementById('scan-message');
             const previewZone = document.getElementById('preview-zone');
+            const processedZone = document.getElementById('processed-zone');
 
-            // Afficher la preview
+            // Preview image originale
             const reader = new FileReader();
             reader.onload = (event) => {
-                previewZone.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
+                previewZone.innerHTML = `
+                    <p style="font-size: 0.9em;">Image originale :</p>
+                    <img src="${event.target.result}" alt="Preview">
+                `;
             };
             reader.readAsDataURL(file);
 
             scanBtn.classList.add('scanning');
-            scanBtn.textContent = '⏳ Analyse en cours...';
-            messageDiv.innerHTML = '<p class="message info">🔍 Recherche du nom et du numéro...</p>';
+            scanBtn.textContent = '⏳ Prétraitement...';
+            messageDiv.innerHTML = '<p class="message info">🔧 Amélioration de l\'image...</p>';
 
             try {
-                const result = await Tesseract.recognize(file, 'eng', {
-                    logger: (m) => {
-                        if (m.status === 'recognizing text') {
-                            const percent = Math.round(m.progress * 100);
-                            messageDiv.innerHTML = `<p class="message info">🔍 Analyse : ${percent}%</p>`;
-                        }
-                    }
+                // Prétraiter l'image en 3 versions
+                const processedImages = await preprocessImage(file);
+                
+                // Afficher les versions traitées
+                processedZone.innerHTML = '<p style="font-size: 0.9em;">Versions traitées :</p>';
+                processedImages.forEach(canvas => {
+                    processedZone.appendChild(canvas);
                 });
 
-                const detectedText = result.data.text;
-                console.log('Texte brut:', detectedText);
+                messageDiv.innerHTML = '<p class="message info">🔍 Analyse OCR sur 3 versions...</p>';
 
-                // Analyser le texte avec la nouvelle méthode
-                const scanResult = analyzeTextImproved(detectedText);
+                // Lancer l'OCR sur les 3 versions en parallèle
+                const ocrPromises = processedImages.map((canvas, index) => 
+                    performOCR(canvas, index + 1)
+                );
+
+                const results = await Promise.all(ocrPromises);
                 
+                // Combiner tous les textes détectés
+                const allText = results.join('\n\n');
+                console.log('Texte combiné:', allText);
+
                 const debugInfo = `
                     <div class="debug-info">
-                        <strong>Texte détecté :</strong>
-                        <pre>${detectedText}</pre>
+                        <strong>Texte détecté (3 versions combinées) :</strong>
+                        <pre>${allText}</pre>
                     </div>
                 `;
 
+                const scanResult = analyzeText(allText);
+                
                 if (scanResult.success) {
                     const detectedInfo = `
                         <div class="detected-info">
-                            <strong>✅ Trouvé :</strong><br>
-                            Nom: ${scanResult.pop.name}<br>
-                            Numéro: #${scanResult.pop.number}<br>
-                            Série: ${scanResult.pop.series}
+                            <strong>✅ POP DÉTECTÉE !</strong><br>
+                            ${scanResult.pop.name} - #${scanResult.pop.number}
                         </div>
                     `;
                     messageDiv.innerHTML = debugInfo + detectedInfo;
@@ -487,7 +599,7 @@
                 }
 
             } catch (error) {
-                console.error('Erreur OCR:', error);
+                console.error('Erreur:', error);
                 messageDiv.innerHTML = `<p class="message error">❌ Erreur lors du scan</p>`;
             }
 
@@ -496,63 +608,84 @@
             e.target.value = '';
         });
 
+        async function performOCR(canvas, versionNumber) {
+            const result = await Tesseract.recognize(canvas, 'eng', {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        const percent = Math.round(m.progress * 100);
+                        document.getElementById('scan-message').innerHTML = 
+                            `<p class="message info">🔍 Version ${versionNumber}/3 : ${percent}%</p>`;
+                    }
+                }
+            });
+            return result.data.text;
+        }
+
         // ========== ANALYSE AMÉLIORÉE ==========
 
-        function analyzeTextImproved(text) {
+        function analyzeText(text) {
             text = text.toUpperCase();
-            console.log('Texte nettoyé:', text);
+            
+            const numbers = extractAllNumbers(text);
+            console.log('Numéros trouvés:', numbers);
 
-            // Extraire TOUS les nombres (même avec des erreurs OCR)
-            const allNumbers = extractAllNumbers(text);
-            console.log('Tous les nombres trouvés:', allNumbers);
-
-            if (allNumbers.length === 0) {
+            if (numbers.length === 0) {
                 return {
                     success: false,
-                    error: "❌ Aucun numéro détecté"
+                    error: "❌ Aucun numéro détecté sur les 3 versions"
                 };
             }
 
-            // Chercher chaque nombre dans notre base
-            for (let num of allNumbers) {
+            // Tester chaque numéro trouvé
+            for (let num of numbers) {
                 const pop = allPops.find(p => p.number === num);
                 
                 if (!pop) continue;
 
-                // Vérifier si le nom est présent
                 const nameFound = checkNameInText(pop.name, text);
                 
-                console.log(`#${num} - ${pop.name}: ${nameFound ? 'TROUVÉ ✅' : 'pas trouvé ❌'}`);
+                console.log(`#${num} - ${pop.name}: ${nameFound ? '✅' : '❌'}`);
 
                 if (nameFound) {
-                    return {
-                        success: true,
-                        pop: pop
-                    };
+                    return { success: true, pop: pop };
                 }
             }
 
-            // Pas de match nom + numéro
             return {
                 success: false,
-                error: `❌ Numéros détectés: ${allNumbers.join(', ')}<br>Mais aucun nom ne correspond`
+                error: `❌ Numéros détectés: ${numbers.join(', ')}<br>Mais aucun nom ne correspond`
             };
         }
 
-        // Extraire tous les nombres possibles (même mal détectés)
         function extractAllNumbers(text) {
             const numbers = new Set();
             
-            // Méthode 1: Nombres de 3-4 chiffres isolés
+            // Méthode 1: Nombres de 3-4 chiffres
             const matches1 = text.match(/\b\d{3,4}\b/g);
             if (matches1) {
-                matches1.forEach(m => numbers.add(parseInt(m)));
+                matches1.forEach(m => {
+                    const num = parseInt(m);
+                    if (num >= 100 && num <= 9999) {
+                        numbers.add(num);
+                    }
+                });
             }
 
-            // Méthode 2: Chercher des nombres avec espaces "15 32" → 1532
-            const matches2 = text.match(/\b(\d{1,2})\s+(\d{1,2})\b/g);
+            // Méthode 2: Chercher "#XXX"
+            const matches2 = text.match(/#\s*(\d{3,4})/g);
             if (matches2) {
                 matches2.forEach(m => {
+                    const num = parseInt(m.replace(/[^\d]/g, ''));
+                    if (num >= 100 && num <= 9999) {
+                        numbers.add(num);
+                    }
+                });
+            }
+
+            // Méthode 3: Nombres séparés "15 32" → 1532
+            const matches3 = text.match(/\b(\d{1,2})\s+(\d{1,2})\b/g);
+            if (matches3) {
+                matches3.forEach(m => {
                     const combined = m.replace(/\s/g, '');
                     const num = parseInt(combined);
                     if (num >= 100 && num <= 9999) {
@@ -561,30 +694,41 @@
                 });
             }
 
-            // Méthode 3: Corriger les erreurs OCR courantes
+            // Méthode 4: Corriger les erreurs OCR
             let cleaned = text
                 .replace(/O/g, '0')
-                .replace(/I/g, '1')
-                .replace(/L/g, '1')
+                .replace(/[IL|]/g, '1')
                 .replace(/S/g, '5')
-                .replace(/B/g, '8')
-                .replace(/Z/g, '2');
+                .replace(/[B8]/g, '8')
+                .replace(/Z/g, '2')
+                .replace(/G/g, '6');
             
-            const matches3 = cleaned.match(/\b\d{3,4}\b/g);
-            if (matches3) {
-                matches3.forEach(m => numbers.add(parseInt(m)));
+            const matches4 = cleaned.match(/\b\d{3,4}\b/g);
+            if (matches4) {
+                matches4.forEach(m => {
+                    const num = parseInt(m);
+                    if (num >= 100 && num <= 9999) {
+                        numbers.add(num);
+                    }
+                });
             }
 
             return Array.from(numbers).sort((a, b) => a - b);
         }
 
-        // Vérifier si le nom est dans le texte
         function checkNameInText(popName, text) {
-            const variations = getNameVariations(popName);
+            const variations = [
+                popName,
+                popName.split(' ')[0], // Prénom
+                popName.split(' ').pop(), // Nom de famille
+                popName.replace(/\s/g, ''),
+                popName.replace(/\s/g, '-'),
+                popName.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            ];
             
             for (let variation of variations) {
                 if (text.includes(variation.toUpperCase())) {
-                    console.log(`Match trouvé: "${variation}"`);
+                    console.log(`✅ Match: "${variation}"`);
                     return true;
                 }
             }
@@ -592,55 +736,26 @@
             return false;
         }
 
-        function getNameVariations(name) {
-            const variations = [];
-            
-            // Nom complet
-            variations.push(name);
-            
-            // Prénom seul
-            const parts = name.split(' ');
-            if (parts.length > 1) {
-                variations.push(parts[0]); // Prénom
-                variations.push(parts[parts.length - 1]); // Nom de famille
-            }
-            
-            // Sans espaces
-            variations.push(name.replace(/\s/g, ''));
-            
-            // Sans accents
-            variations.push(name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
-            
-            // Variations avec tirets/espaces
-            variations.push(name.replace(/\s/g, '-'));
-            variations.push(name.replace(/-/g, ' '));
-            
-            return variations;
-        }
+        // ========== DÉBLOCAGE ==========
 
-        // ========== GESTION DU SCAN ==========
-function handleScan(pop) {
+        function handleScan(pop) {
             if (unlockedPops.includes(pop.number)) {
-                const messageDiv = document.getElementById('scan-message');
-                messageDiv.innerHTML += `<p class="message error">⚠️ Cette Pop est déjà dans ta collection !</p>`;
+                document.getElementById('scan-message').innerHTML += 
+                    `<p class="message error">⚠️ Cette Pop est déjà dans ta collection !</p>`;
                 return;
             }
 
             unlockedPops.push(pop.number);
-            saveProgress();
+            localStorage.setItem('unlockedPops', JSON.stringify(unlockedPops));
             
-            setTimeout(() => {
-                showUnlock(pop);
-            }, 1000);
+            setTimeout(() => showUnlock(pop), 1000);
         }
 
         function showUnlock(pop) {
-            const popup = document.getElementById('unlock-popup');
             document.getElementById('unlock-image').src = `${pop.number}.png`;
             document.getElementById('unlock-name').textContent = pop.name;
             document.getElementById('unlock-number').textContent = `#${pop.number}`;
-            
-            popup.classList.remove('hidden');
+            document.getElementById('unlock-popup').classList.remove('hidden');
         }
 
         function closeUnlock() {
@@ -648,15 +763,8 @@ function handleScan(pop) {
             showCollection();
         }
 
-        // ========== SAUVEGARDE ==========
-
-        function saveProgress() {
-            localStorage.setItem('unlockedPops', JSON.stringify(unlockedPops));
-        }
-
-        // ========== INITIALISATION ==========
+        // ========== INIT ==========
         displayCollection();
     </script>
 </body>
 </html>
-        
