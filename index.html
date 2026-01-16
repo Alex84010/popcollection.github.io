@@ -257,11 +257,20 @@
             margin: 10px 0;
             font-size: 0.85em;
             text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
         .debug-info pre {
             white-space: pre-wrap;
             word-wrap: break-word;
+        }
+
+        .detected-info {
+            background: rgba(33, 150, 243, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
         }
     </style>
 </head>
@@ -322,17 +331,23 @@
     <script>
         // ========== DONNÉES ==========
         
-        // Liste de toutes les Pops Demon Slayer
+        // Liste de toutes les Pops (AJOUTE TOUTES TES POPS ICI)
         const allPops = [
-            { number: 2041, name: "Tanjiro Kamado" },
-            { number: 2042, name: "Nezuko Kamado" },
-            { number: 1532, name: "Inosuke Hashibira" },
-            { number: 1534, name: "Daki" },
-            { number: 1817, name: "Daki" },
-            { number: 2046, name: "Mitsuri Kanroji" },
-            { number: 2032, name: "Tanjiro Kamado" },
-            { number: 2033, name: "Nezuko Kamado" },
-            // Ajoute toutes tes Pops ici
+            // Demon Slayer
+            { number: 867, name: "Inosuke Hashibira", series: "Demon Slayer" },
+            { number: 1532, name: "Inosuke Hashibira", series: "Demon Slayer" },
+            { number: 615, name: "Tanjiro Kamado", series: "Demon Slayer" },
+            { number: 616, name: "Nezuko Kamado", series: "Demon Slayer" },
+            { number: 868, name: "Zenitsu Agatsuma", series: "Demon Slayer" },
+            { number: 869, name: "Giyu Tomioka", series: "Demon Slayer" },
+            { number: 870, name: "Shinobu Kocho", series: "Demon Slayer" },
+            { number: 871, name: "Kyojuro Rengoku", series: "Demon Slayer" },
+            { number: 1559, name: "Muzan Kibutsuji", series: "Demon Slayer" },
+            
+            // Dragon Ball Z
+            { number: 952, name: "Kami", series: "Dragon Ball Z" },
+            
+            // AJOUTE TES AUTRES POPS ICI
         ];
 
         // Pops débloquées (sauvegardées dans le navigateur)
@@ -340,7 +355,6 @@
 
         // ========== FONCTIONS PRINCIPALES ==========
 
-        // Changer d'écran
         function showScan() {
             document.getElementById('scan-screen').classList.add('active');
             document.getElementById('collection-screen').classList.remove('active');
@@ -354,12 +368,10 @@
             displayCollection();
         }
 
-        // Afficher la collection
         function displayCollection() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
 
-            // Trier par numéro
             const sorted = [...allPops].sort((a, b) => a.number - b.number);
 
             sorted.forEach(pop => {
@@ -378,11 +390,9 @@
                 grid.appendChild(card);
             });
 
-            // Mettre à jour les stats
             updateStats();
         }
 
-        // Mettre à jour les stats
         function updateStats() {
             const total = allPops.length;
             const unlocked = unlockedPops.length;
@@ -392,7 +402,6 @@
                 `${unlocked}/${total} débloquées (${percent}%)`;
         }
 
-        // Afficher le détail d'une Pop
         function showDetail(pop, isUnlocked) {
             const popup = document.getElementById('detail-popup');
             const img = document.getElementById('detail-image');
@@ -417,7 +426,7 @@
             document.getElementById('detail-popup').classList.add('hidden');
         }
 
-        // ========== SCAN OCR ==========
+        // ========== SCAN OCR AMÉLIORÉ ==========
 
         document.getElementById('photo-input').addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -427,20 +436,18 @@
             const messageDiv = document.getElementById('scan-message');
             const previewZone = document.getElementById('preview-zone');
 
-            // Afficher la preview de l'image
+            // Afficher la preview
             const reader = new FileReader();
             reader.onload = (event) => {
                 previewZone.innerHTML = `<img src="${event.target.result}" alt="Preview">`;
             };
             reader.readAsDataURL(file);
 
-            // Changer le bouton en mode "scanning"
             scanBtn.classList.add('scanning');
             scanBtn.textContent = '⏳ Analyse en cours...';
             messageDiv.innerHTML = '<p class="message info">🔍 Recherche du nom et du numéro...</p>';
 
             try {
-                // Lancer l'OCR avec Tesseract
                 const result = await Tesseract.recognize(file, 'eng', {
                     logger: (m) => {
                         if (m.status === 'recognizing text') {
@@ -451,9 +458,11 @@
                 });
 
                 const detectedText = result.data.text;
-                console.log('Texte détecté:', detectedText);
+                console.log('Texte brut:', detectedText);
 
-                // Afficher le texte détecté (pour debug)
+                // Analyser le texte avec la nouvelle méthode
+                const scanResult = analyzeTextImproved(detectedText);
+                
                 const debugInfo = `
                     <div class="debug-info">
                         <strong>Texte détecté :</strong>
@@ -461,12 +470,16 @@
                     </div>
                 `;
 
-                // Analyser le texte
-                const scanResult = analyzeText(detectedText);
-                
                 if (scanResult.success) {
-                    messageDiv.innerHTML = debugInfo + 
-                        `<p class="message success">✅ Détecté : ${scanResult.pop.name} #${scanResult.pop.number}</p>`;
+                    const detectedInfo = `
+                        <div class="detected-info">
+                            <strong>✅ Trouvé :</strong><br>
+                            Nom: ${scanResult.pop.name}<br>
+                            Numéro: #${scanResult.pop.number}<br>
+                            Série: ${scanResult.pop.series}
+                        </div>
+                    `;
+                    messageDiv.innerHTML = debugInfo + detectedInfo;
                     handleScan(scanResult.pop);
                 } else {
                     messageDiv.innerHTML = debugInfo + 
@@ -475,54 +488,43 @@
 
             } catch (error) {
                 console.error('Erreur OCR:', error);
-                messageDiv.innerHTML = `<p class="message error">❌ Erreur lors du scan. Réessaye !</p>`;
+                messageDiv.innerHTML = `<p class="message error">❌ Erreur lors du scan</p>`;
             }
 
-            // Restaurer le bouton
             scanBtn.classList.remove('scanning');
             scanBtn.textContent = '📷 Prendre une photo';
-
-            // Réinitialiser l'input
             e.target.value = '';
         });
 
-        // ========== ANALYSE DU TEXTE OCR ==========
+        // ========== ANALYSE AMÉLIORÉE ==========
 
-        function analyzeText(text) {
-            // Nettoyer le texte
-            text = text.toUpperCase().replace(/[^\w\s#]/g, ' ');
-            
+        function analyzeTextImproved(text) {
+            text = text.toUpperCase();
             console.log('Texte nettoyé:', text);
 
-            // Chercher un numéro (3-4 chiffres)
-            const numberMatches = text.match(/\b(\d{3,4})\b/g);
-            
-            if (!numberMatches) {
+            // Extraire TOUS les nombres (même avec des erreurs OCR)
+            const allNumbers = extractAllNumbers(text);
+            console.log('Tous les nombres trouvés:', allNumbers);
+
+            if (allNumbers.length === 0) {
                 return {
                     success: false,
-                    error: "❌ Aucun numéro détecté sur la boîte"
+                    error: "❌ Aucun numéro détecté"
                 };
             }
 
-            console.log('Numéros trouvés:', numberMatches);
-
-            // Pour chaque numéro trouvé, chercher la Pop correspondante
-            for (let numberStr of numberMatches) {
-                const number = parseInt(numberStr);
-                const pop = allPops.find(p => p.number === number);
+            // Chercher chaque nombre dans notre base
+            for (let num of allNumbers) {
+                const pop = allPops.find(p => p.number === num);
                 
-                if (!pop) continue; // Ce numéro n'existe pas dans notre liste
-                
-                // Vérifier si le nom du personnage est présent dans le texte
-                const nameVariations = getNameVariations(pop.name);
-                const nameFound = nameVariations.some(variation => 
-                    text.includes(variation.toUpperCase())
-                );
+                if (!pop) continue;
 
-                console.log(`Pop #${number}: Nom cherché = ${pop.name}, Trouvé = ${nameFound}`);
+                // Vérifier si le nom est présent
+                const nameFound = checkNameInText(pop.name, text);
+                
+                console.log(`#${num} - ${pop.name}: ${nameFound ? 'TROUVÉ ✅' : 'pas trouvé ❌'}`);
 
                 if (nameFound) {
-                    // SUCCESS : Nom ET numéro correspondent !
                     return {
                         success: true,
                         pop: pop
@@ -530,51 +532,108 @@
                 }
             }
 
-            // Si on arrive ici, on a trouvé des numéros mais pas les noms correspondants
+            // Pas de match nom + numéro
             return {
                 success: false,
-                error: "❌ Le nom et le numéro ne correspondent pas"
+                error: `❌ Numéros détectés: ${allNumbers.join(', ')}<br>Mais aucun nom ne correspond`
             };
         }
 
-        // Générer des variations du nom pour une meilleure détection
+        // Extraire tous les nombres possibles (même mal détectés)
+        function extractAllNumbers(text) {
+            const numbers = new Set();
+            
+            // Méthode 1: Nombres de 3-4 chiffres isolés
+            const matches1 = text.match(/\b\d{3,4}\b/g);
+            if (matches1) {
+                matches1.forEach(m => numbers.add(parseInt(m)));
+            }
+
+            // Méthode 2: Chercher des nombres avec espaces "15 32" → 1532
+            const matches2 = text.match(/\b(\d{1,2})\s+(\d{1,2})\b/g);
+            if (matches2) {
+                matches2.forEach(m => {
+                    const combined = m.replace(/\s/g, '');
+                    const num = parseInt(combined);
+                    if (num >= 100 && num <= 9999) {
+                        numbers.add(num);
+                    }
+                });
+            }
+
+            // Méthode 3: Corriger les erreurs OCR courantes
+            let cleaned = text
+                .replace(/O/g, '0')
+                .replace(/I/g, '1')
+                .replace(/L/g, '1')
+                .replace(/S/g, '5')
+                .replace(/B/g, '8')
+                .replace(/Z/g, '2');
+            
+            const matches3 = cleaned.match(/\b\d{3,4}\b/g);
+            if (matches3) {
+                matches3.forEach(m => numbers.add(parseInt(m)));
+            }
+
+            return Array.from(numbers).sort((a, b) => a - b);
+        }
+
+        // Vérifier si le nom est dans le texte
+        function checkNameInText(popName, text) {
+            const variations = getNameVariations(popName);
+            
+            for (let variation of variations) {
+                if (text.includes(variation.toUpperCase())) {
+                    console.log(`Match trouvé: "${variation}"`);
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
         function getNameVariations(name) {
-            const variations = [name];
+            const variations = [];
             
-            // Retirer le nom de famille
-            const firstName = name.split(' ')[0];
-            variations.push(firstName);
+            // Nom complet
+            variations.push(name);
             
-            // Version sans espaces
+            // Prénom seul
+            const parts = name.split(' ');
+            if (parts.length > 1) {
+                variations.push(parts[0]); // Prénom
+                variations.push(parts[parts.length - 1]); // Nom de famille
+            }
+            
+            // Sans espaces
             variations.push(name.replace(/\s/g, ''));
             
-            // Versions sans accents (si besoin)
+            // Sans accents
             variations.push(name.normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+            
+            // Variations avec tirets/espaces
+            variations.push(name.replace(/\s/g, '-'));
+            variations.push(name.replace(/-/g, ' '));
             
             return variations;
         }
 
         // ========== GESTION DU SCAN ==========
-
-        function handleScan(pop) {
-            // Vérifier si déjà débloquée
+function handleScan(pop) {
             if (unlockedPops.includes(pop.number)) {
                 const messageDiv = document.getElementById('scan-message');
-                messageDiv.innerHTML += `<p class="message error">⚠️ Pop #${pop.number} déjà dans ta collection !</p>`;
+                messageDiv.innerHTML += `<p class="message error">⚠️ Cette Pop est déjà dans ta collection !</p>`;
                 return;
             }
 
-            // DÉBLOCAGE !
             unlockedPops.push(pop.number);
             saveProgress();
             
-            // Animation après 1 seconde
             setTimeout(() => {
                 showUnlock(pop);
             }, 1000);
         }
 
-        // Afficher l'animation de déblocage
         function showUnlock(pop) {
             const popup = document.getElementById('unlock-popup');
             document.getElementById('unlock-image').src = `${pop.number}.png`;
@@ -586,7 +645,7 @@
 
         function closeUnlock() {
             document.getElementById('unlock-popup').classList.add('hidden');
-            showCollection(); // Aller à la collection
+            showCollection();
         }
 
         // ========== SAUVEGARDE ==========
@@ -596,9 +655,8 @@
         }
 
         // ========== INITIALISATION ==========
-
-        // Afficher la collection au démarrage
         displayCollection();
     </script>
 </body>
-  </html>
+</html>
+        
