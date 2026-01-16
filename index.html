@@ -7,7 +7,7 @@
 <style>
 body {
   margin: 0;
-  background: #0f0f0f;
+  background: #111;
   color: white;
   font-family: Arial, sans-serif;
 }
@@ -20,18 +20,15 @@ video {
 
 button {
   width: 100%;
-  padding: 14px;
+  padding: 16px;
   font-size: 18px;
-  background: #ff4757;
-  color: white;
-  border: none;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px;
-  padding: 12px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  padding: 10px;
 }
 
 .card img {
@@ -46,32 +43,35 @@ button {
 
 <body>
 
-<h2 style="text-align:center">Scanner une Funko Pop</h2>
+<h2 style="text-align:center">Scanner une Funko</h2>
 
 <video id="video" autoplay playsinline></video>
-<button onclick="scan()">📸 Scanner</button>
+<button onclick="scan()">Scanner</button>
 
 <canvas id="canvas" hidden></canvas>
 
 <div id="collection" class="grid"></div>
 
 <script>
-/* DATA */
-const pops = [615, 616, 617, 618];
+const pops = [615, 616];
 let unlocked = JSON.parse(localStorage.getItem("unlocked")) || [];
 
-/* CAMERA */
 const video = document.getElementById("video");
-navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-  .then(stream => video.srcObject = stream);
 
-/* SCAN */
+navigator.mediaDevices.getUserMedia({
+  video: { facingMode: "environment" }
+}).then(stream => {
+  video.srcObject = stream;
+});
+
 async function scan() {
   const canvas = document.getElementById("canvas");
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
 
-  canvas.getContext("2d").drawImage(video, 0, 0);
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0);
+
   const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg"));
 
   const form = new FormData();
@@ -87,20 +87,15 @@ async function scan() {
   if (
     result.is_funko_box &&
     result.license === "demon_slayer" &&
-    pops.includes(result.detected_number) &&
-    result.confidence > 0.7 &&
     !unlocked.includes(result.detected_number)
   ) {
     unlocked.push(result.detected_number);
     localStorage.setItem("unlocked", JSON.stringify(unlocked));
     render();
-    alert("🎉 Débloquée !");
-  } else {
-    alert("❌ Scan invalide");
+    alert("Débloquée !");
   }
 }
 
-/* COLLECTION */
 function render() {
   const grid = document.getElementById("collection");
   grid.innerHTML = "";
