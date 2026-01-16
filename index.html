@@ -1,770 +1,125 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ma Collection Funko Pop</title>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<title>Funko Scan</title>
 
-        body {
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: white;
-        }
+<style>
+body {
+  margin: 0;
+  background: #0f0f0f;
+  color: white;
+  font-family: Arial, sans-serif;
+}
 
-        .screen {
-            display: none;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-        }
+video {
+  width: 100%;
+  max-height: 40vh;
+  object-fit: cover;
+}
 
-        .screen.active {
-            display: block;
-        }
+button {
+  width: 100%;
+  padding: 14px;
+  font-size: 18px;
+  background: #ff4757;
+  color: white;
+  border: none;
+}
 
-        h1 {
-            text-align: center;
-            margin-bottom: 30px;
-            font-size: 2em;
-        }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  padding: 12px;
+}
 
-        .camera-zone {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 60px 20px;
-            text-align: center;
-            margin: 20px 0;
-        }
+.card img {
+  width: 100%;
+}
 
-        #photo-input {
-            display: none;
-        }
-
-        .scan-button {
-            display: inline-block;
-            background: #4CAF50;
-            color: white;
-            padding: 20px 40px;
-            border-radius: 15px;
-            font-size: 1.3em;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .scan-button:hover {
-            transform: scale(1.05);
-        }
-
-        .scan-button.scanning {
-            background: #FFA726;
-            pointer-events: none;
-        }
-
-        .preview-zone {
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        .preview-zone img {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-
-        .stats {
-            text-align: center;
-            font-size: 1.2em;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px;
-            border-radius: 10px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .pop-card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 10px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .pop-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .pop-card img {
-            width: 100%;
-            height: auto;
-            border-radius: 10px;
-            transition: filter 0.5s;
-        }
-
-        .pop-card.locked img {
-            filter: brightness(0);
-        }
-
-        .pop-card p {
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-
-        .nav-button {
-            display: block;
-            width: 100%;
-            max-width: 300px;
-            margin: 20px auto;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
-            cursor: pointer;
-        }
-
-        .nav-button:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .popup.hidden {
-            display: none;
-        }
-
-        .popup-content {
-            background: white;
-            color: #333;
-            padding: 30px;
-            border-radius: 20px;
-            max-width: 400px;
-            text-align: center;
-            position: relative;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .popup-content img {
-            max-width: 200px;
-            margin: 20px 0;
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #f44336;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            font-size: 1.2em;
-        }
-
-        .popup-content button {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 10px;
-            font-size: 1.1em;
-            cursor: pointer;
-            margin-top: 20px;
-        }
-
-        .celebrate {
-            animation: popIn 0.5s ease-out;
-        }
-
-        @keyframes popIn {
-            0% { transform: scale(0); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-
-        .message {
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        .message.error {
-            background: #f44336;
-            color: white;
-        }
-
-        .message.success {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .message.info {
-            background: #2196F3;
-            color: white;
-        }
-
-        .debug-info {
-            background: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-size: 0.85em;
-            text-align: left;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        .debug-info pre {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        .detected-info {
-            background: rgba(76, 175, 80, 0.3);
-            padding: 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-size: 1.1em;
-        }
-
-        .processed-images {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 10px 0;
-        }
-
-        .processed-images canvas {
-            max-width: 150px;
-            border-radius: 5px;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        .tip-box {
-            background: rgba(255, 193, 7, 0.2);
-            border-left: 4px solid #FFC107;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 5px;
-        }
-
-        .tip-box strong {
-            color: #FFC107;
-        }
-    </style>
+.locked img {
+  filter: brightness(0);
+}
+</style>
 </head>
+
 <body>
-    <!-- Écran de scan -->
-    <div id="scan-screen" class="screen active">
-        <h1>📸 Scanner une Pop</h1>
-        
-        <div class="tip-box">
-            <strong>💡 Conseils pour un bon scan :</strong><br>
-            • Prends la photo avec beaucoup de lumière<br>
-            • Cadre bien le nom et le numéro<br>
-            • Tiens la boîte bien droite<br>
-            • Évite les reflets
-        </div>
-
-        <div class="camera-zone">
-            <input type="file" id="photo-input" accept="image/*" capture="environment">
-            <label for="photo-input" class="scan-button" id="scan-btn">
-                📷 Prendre une photo
-            </label>
-        </div>
-        <div id="preview-zone" class="preview-zone"></div>
-        <div id="processed-zone" class="processed-images"></div>
-        <div id="scan-message"></div>
-        <button onclick="showCollection()" class="nav-button">
-            Voir ma collection
-        </button>
-    </div>
-
-    <!-- Écran de collection -->
-    <div id="collection-screen" class="screen">
-        <h1>🎴 Ma Collection</h1>
-        <div class="stats">
-            <span id="stats-text">0/0 débloquées</span>
-        </div>
-        
-        <div id="grid" class="grid"></div>
-        
-        <button onclick="showScan()" class="nav-button">
-            Retour au scan
-        </button>
-    </div>
-
-    <!-- Pop-up détail -->
-    <div id="detail-popup" class="popup hidden">
-        <div class="popup-content">
-            <button onclick="closeDetail()" class="close-btn">✖</button>
-            <img id="detail-image" src="" alt="">
-            <h2 id="detail-name">???</h2>
-            <p id="detail-number">#???</p>
-        </div>
-    </div>
-
-    <!-- Pop-up déblocage -->
-    <div id="unlock-popup" class="popup hidden">
-        <div class="popup-content celebrate">
-            <h2>🎉 NOUVELLE POP !</h2>
-            <img id="unlock-image" src="" alt="">
-            <h3 id="unlock-name"></h3>
-            <p id="unlock-number"></p>
-            <button onclick="closeUnlock()">Super !</button>
-        </div>
-    </div>
-
-    <script>
-        // ========== DONNÉES ==========
-        
-        const allPops = [
-            { number: 867, name: "Inosuke Hashibira", series: "Demon Slayer" },
-            { number: 1532, name: "Inosuke Hashibira", series: "Demon Slayer" },
-            { number: 615, name: "Tanjiro Kamado", series: "Demon Slayer" },
-            { number: 616, name: "Nezuko Kamado", series: "Demon Slayer" },
-            { number: 868, name: "Zenitsu Agatsuma", series: "Demon Slayer" },
-            { number: 869, name: "Giyu Tomioka", series: "Demon Slayer" },
-            { number: 870, name: "Shinobu Kocho", series: "Demon Slayer" },
-            { number: 871, name: "Kyojuro Rengoku", series: "Demon Slayer" },
-            { number: 1559, name: "Muzan Kibutsuji", series: "Demon Slayer" },
-            { number: 952, name: "Kami", series: "Dragon Ball Z" },
-            // AJOUTE TES POPS ICI
-        ];
-
-        let unlockedPops = JSON.parse(localStorage.getItem('unlockedPops')) || [];
-
-        // ========== NAVIGATION ==========
-
-        function showScan() {
-            document.getElementById('scan-screen').classList.add('active');
-            document.getElementById('collection-screen').classList.remove('active');
-            document.getElementById('preview-zone').innerHTML = '';
-            document.getElementById('processed-zone').innerHTML = '';
-            document.getElementById('scan-message').innerHTML = '';
-        }
-
-        function showCollection() {
-            document.getElementById('scan-screen').classList.remove('active');
-            document.getElementById('collection-screen').classList.add('active');
-            displayCollection();
-        }
-
-        function displayCollection() {
-            const grid = document.getElementById('grid');
-            grid.innerHTML = '';
-
-            const sorted = [...allPops].sort((a, b) => a.number - b.number);
-
-            sorted.forEach(pop => {
-                const isUnlocked = unlockedPops.includes(pop.number);
-                
-                const card = document.createElement('div');
-                card.className = isUnlocked ? 'pop-card' : 'pop-card locked';
-                card.onclick = () => showDetail(pop, isUnlocked);
-                
-                card.innerHTML = `
-                    <img src="${pop.number}.png" alt="Pop ${pop.number}">
-                    <p>${isUnlocked ? pop.name : '???'}</p>
-                    <p>#${pop.number}</p>
-                `;
-                
-                grid.appendChild(card);
-            });
-
-            updateStats();
-        }
-
-        function updateStats() {
-            const total = allPops.length;
-            const unlocked = unlockedPops.length;
-            const percent = Math.round((unlocked / total) * 100);
-            
-            document.getElementById('stats-text').textContent = 
-                `${unlocked}/${total} débloquées (${percent}%)`;
-        }
-
-        function showDetail(pop, isUnlocked) {
-            const popup = document.getElementById('detail-popup');
-            const img = document.getElementById('detail-image');
-            const name = document.getElementById('detail-name');
-            const number = document.getElementById('detail-number');
-
-            img.src = `${pop.number}.png`;
-            
-            if (isUnlocked) {
-                img.style.filter = 'none';
-                name.textContent = pop.name;
-            } else {
-                img.style.filter = 'brightness(0)';
-                name.textContent = '???';
-            }
-            
-            number.textContent = `#${pop.number}`;
-            popup.classList.remove('hidden');
-        }
-
-        function closeDetail() {
-            document.getElementById('detail-popup').classList.add('hidden');
-        }
-
-        // ========== PRÉTRAITEMENT D'IMAGE ==========
-
-        function preprocessImage(imageFile) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                const reader = new FileReader();
-
-                reader.onload = (e) => {
-                    img.onload = () => {
-                        // Créer 3 versions traitées de l'image
-                        const processed = [
-                            enhanceContrast(img),
-                            sharpenImage(img),
-                            grayscaleThreshold(img)
-                        ];
-                        resolve(processed);
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(imageFile);
-            });
-        }
-
-        // Augmenter le contraste
-        function enhanceContrast(img) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-
-            const factor = 1.5; // Facteur de contraste
-            for (let i = 0; i < data.length; i += 4) {
-                data[i] = Math.min(255, ((data[i] - 128) * factor) + 128);     // R
-                data[i + 1] = Math.min(255, ((data[i + 1] - 128) * factor) + 128); // G
-                data[i + 2] = Math.min(255, ((data[i + 2] - 128) * factor) + 128); // B
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            return canvas;
-        }
-
-        // Accentuer les contours
-        function sharpenImage(img) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-
-            // Augmenter la luminosité
-            for (let i = 0; i < data.length; i += 4) {
-                data[i] = Math.min(255, data[i] * 1.2);
-                data[i + 1] = Math.min(255, data[i + 1] * 1.2);
-                data[i + 2] = Math.min(255, data[i + 2] * 1.2);
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            return canvas;
-        }
-
-        // Noir et blanc avec seuil
-        function grayscaleThreshold(img) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = img.width;
-            canvas.height = img.height;
-
-            ctx.drawImage(img, 0, 0);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-                const gray = data[i] * 0.3 + data[i + 1] * 0.59 + data[i + 2] * 0.11;
-                const threshold = gray > 150 ? 255 : 0; // Seuil pour noir/blanc
-                data[i] = data[i + 1] = data[i + 2] = threshold;
-            }
-
-            ctx.putImageData(imageData, 0, 0);
-            return canvas;
-        }
-
-        // ========== SCAN OCR AMÉLIORÉ ==========
-
-        document.getElementById('photo-input').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const scanBtn = document.getElementById('scan-btn');
-            const messageDiv = document.getElementById('scan-message');
-            const previewZone = document.getElementById('preview-zone');
-            const processedZone = document.getElementById('processed-zone');
-
-            // Preview image originale
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                previewZone.innerHTML = `
-                    <p style="font-size: 0.9em;">Image originale :</p>
-                    <img src="${event.target.result}" alt="Preview">
-                `;
-            };
-            reader.readAsDataURL(file);
-
-            scanBtn.classList.add('scanning');
-            scanBtn.textContent = '⏳ Prétraitement...';
-            messageDiv.innerHTML = '<p class="message info">🔧 Amélioration de l\'image...</p>';
-
-            try {
-                // Prétraiter l'image en 3 versions
-                const processedImages = await preprocessImage(file);
-                
-                // Afficher les versions traitées
-                processedZone.innerHTML = '<p style="font-size: 0.9em;">Versions traitées :</p>';
-                processedImages.forEach(canvas => {
-                    processedZone.appendChild(canvas);
-                });
-
-                messageDiv.innerHTML = '<p class="message info">🔍 Analyse OCR sur 3 versions...</p>';
-
-                // Lancer l'OCR sur les 3 versions en parallèle
-                const ocrPromises = processedImages.map((canvas, index) => 
-                    performOCR(canvas, index + 1)
-                );
-
-                const results = await Promise.all(ocrPromises);
-                
-                // Combiner tous les textes détectés
-                const allText = results.join('\n\n');
-                console.log('Texte combiné:', allText);
-
-                const debugInfo = `
-                    <div class="debug-info">
-                        <strong>Texte détecté (3 versions combinées) :</strong>
-                        <pre>${allText}</pre>
-                    </div>
-                `;
-
-                const scanResult = analyzeText(allText);
-                
-                if (scanResult.success) {
-                    const detectedInfo = `
-                        <div class="detected-info">
-                            <strong>✅ POP DÉTECTÉE !</strong><br>
-                            ${scanResult.pop.name} - #${scanResult.pop.number}
-                        </div>
-                    `;
-                    messageDiv.innerHTML = debugInfo + detectedInfo;
-                    handleScan(scanResult.pop);
-                } else {
-                    messageDiv.innerHTML = debugInfo + 
-                        `<p class="message error">${scanResult.error}</p>`;
-                }
-
-            } catch (error) {
-                console.error('Erreur:', error);
-                messageDiv.innerHTML = `<p class="message error">❌ Erreur lors du scan</p>`;
-            }
-
-            scanBtn.classList.remove('scanning');
-            scanBtn.textContent = '📷 Prendre une photo';
-            e.target.value = '';
-        });
-
-        async function performOCR(canvas, versionNumber) {
-            const result = await Tesseract.recognize(canvas, 'eng', {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        const percent = Math.round(m.progress * 100);
-                        document.getElementById('scan-message').innerHTML = 
-                            `<p class="message info">🔍 Version ${versionNumber}/3 : ${percent}%</p>`;
-                    }
-                }
-            });
-            return result.data.text;
-        }
-
-        // ========== ANALYSE AMÉLIORÉE ==========
-
-        function analyzeText(text) {
-            text = text.toUpperCase();
-            
-            const numbers = extractAllNumbers(text);
-            console.log('Numéros trouvés:', numbers);
-
-            if (numbers.length === 0) {
-                return {
-                    success: false,
-                    error: "❌ Aucun numéro détecté sur les 3 versions"
-                };
-            }
-
-            // Tester chaque numéro trouvé
-            for (let num of numbers) {
-                const pop = allPops.find(p => p.number === num);
-                
-                if (!pop) continue;
-
-                const nameFound = checkNameInText(pop.name, text);
-                
-                console.log(`#${num} - ${pop.name}: ${nameFound ? '✅' : '❌'}`);
-
-                if (nameFound) {
-                    return { success: true, pop: pop };
-                }
-            }
-
-            return {
-                success: false,
-                error: `❌ Numéros détectés: ${numbers.join(', ')}<br>Mais aucun nom ne correspond`
-            };
-        }
-
-        function extractAllNumbers(text) {
-            const numbers = new Set();
-            
-            // Méthode 1: Nombres de 3-4 chiffres
-            const matches1 = text.match(/\b\d{3,4}\b/g);
-            if (matches1) {
-                matches1.forEach(m => {
-                    const num = parseInt(m);
-                    if (num >= 100 && num <= 9999) {
-                        numbers.add(num);
-                    }
-                });
-            }
-
-            // Méthode 2: Chercher "#XXX"
-            const matches2 = text.match(/#\s*(\d{3,4})/g);
-            if (matches2) {
-                matches2.forEach(m => {
-                    const num = parseInt(m.replace(/[^\d]/g, ''));
-                    if (num >= 100 && num <= 9999) {
-                        numbers.add(num);
-                    }
-                });
-            }
-
-            // Méthode 3: Nombres séparés "15 32" → 1532
-            const matches3 = text.match(/\b(\d{1,2})\s+(\d{1,2})\b/g);
-            if (matches3) {
-                matches3.forEach(m => {
-                    const combined = m.replace(/\s/g, '');
-                    const num = parseInt(combined);
-                    if (num >= 100 && num <= 9999) {
-                        numbers.add(num);
-                    }
-                });
-            }
-
-            // Méthode 4: Corriger les erreurs OCR
-            let cleaned = text
-                .replace(/O/g, '0')
-                .replace(/[IL|]/g, '1')
-                .replace(/S/g, '5')
-                .replace(/[B8]/g, '8')
-                .replace(/Z/g, '2')
-                .replace(/G/g, '6');
-            
-            const matches4 = cleaned.match(/\b\d{3,4}\b/g);
-            if (matches4) {
-                matches4.forEach(m => {
-                    const num = parseInt(m);
-                    if (num >= 100 && num <= 9999) {
-                        numbers.add(num);
-                    }
-                });
-            }
-
-            return Array.from(numbers).sort((a, b) => a - b);
-        }
-
-        function checkNameInText(popName, text) {
-            const variations = [
-                popName,
-                popName.split(' ')[0], // Prénom
-                popName.split(' ').pop(), // Nom de famille
-                popName.replace(/\s/g, ''),
-                popName.replace(/\s/g, '-'),
-                popName.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-            ];
-            
-            for (let variation of variations) {
-                if (text.includes(variation.toUpperCase())) {
-                    console.log(`✅ Match: "${variation}"`);
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-
-        // ========== DÉBLOCAGE ==========
-
-        function handleScan(pop) {
-            if (unlockedPops.includes(pop.number)) {
-                document.getElementById('scan-message').innerHTML += 
-                    `<p class="message error">⚠️ Cette Pop est déjà dans ta collection !</p>`;
-                return;
-            }
-
-            unlockedPops.push(pop.number);
-            localStorage.setItem('unlockedPops', JSON.stringify(unlockedPops));
-            
-            setTimeout(() => showUnlock(pop), 1000);
-        }
-
-        function showUnlock(pop) {
-            document.getElementById('unlock-image').src = `${pop.number}.png`;
-            document.getElementById('unlock-name').textContent = pop.name;
-            document.getElementById('unlock-number').textContent = `#${pop.number}`;
-            document.getElementById('unlock-popup').classList.remove('hidden');
-        }
-
-        function closeUnlock() {
-            document.getElementById('unlock-popup').classList.add('hidden');
-            showCollection();
-        }
-
-        // ========== INIT ==========
-        displayCollection();
-    </script>
+
+<h2 style="text-align:center">Scanner une Funko Pop</h2>
+
+<video id="video" autoplay playsinline></video>
+<button onclick="scan()">📸 Scanner</button>
+
+<canvas id="canvas" hidden></canvas>
+
+<div id="collection" class="grid"></div>
+
+<script>
+/* DATA */
+const pops = [615, 616, 617, 618];
+let unlocked = JSON.parse(localStorage.getItem("unlocked")) || [];
+
+/* CAMERA */
+const video = document.getElementById("video");
+navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+  .then(stream => video.srcObject = stream);
+
+/* SCAN */
+async function scan() {
+  const canvas = document.getElementById("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  canvas.getContext("2d").drawImage(video, 0, 0);
+  const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg"));
+
+  const form = new FormData();
+  form.append("image", blob);
+
+  const res = await fetch("http://localhost:3000/verify", {
+    method: "POST",
+    body: form
+  });
+
+  const result = await res.json();
+
+  if (
+    result.is_funko_box &&
+    result.license === "demon_slayer" &&
+    pops.includes(result.detected_number) &&
+    result.confidence > 0.7 &&
+    !unlocked.includes(result.detected_number)
+  ) {
+    unlocked.push(result.detected_number);
+    localStorage.setItem("unlocked", JSON.stringify(unlocked));
+    render();
+    alert("🎉 Débloquée !");
+  } else {
+    alert("❌ Scan invalide");
+  }
+}
+
+/* COLLECTION */
+function render() {
+  const grid = document.getElementById("collection");
+  grid.innerHTML = "";
+
+  pops.forEach(n => {
+    const card = document.createElement("div");
+    card.className = "card";
+    if (!unlocked.includes(n)) card.classList.add("locked");
+
+    const img = document.createElement("img");
+    img.src = `${n}.png`;
+
+    card.appendChild(img);
+    grid.appendChild(card);
+  });
+}
+
+render();
+</script>
+
 </body>
 </html>
